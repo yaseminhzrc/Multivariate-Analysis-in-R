@@ -1,0 +1,564 @@
+---
+title: "Çok Değişkenli İstatistiksel Analiz Final"
+author: "Yasemin Hızarcı 121516005"
+output: html_document
+---
+
+
+
+<style type="text/css">
+body.td {
+  font-size: 11pt;
+  font-weight:bold;
+}
+code.r{
+font-weight:bold;
+}
+pre {
+font-weight:bold;
+}
+h1.title {
+color:#66023C;
+font-size:24pt;
+font-weight:600;
+}
+h1 {
+color:#66023C;
+font-size:20pt;
+font-weight:600;
+}
+h2 {
+color:maroon;
+font-size:18pt;
+font-weight:600;
+}
+h3 {
+color:maroon;
+font-size:14pt;
+font-weight:600;
+}
+
+</style>
+
+
+
+```{css,echo=FALSE}
+
+.watch-out1 {
+  background-color:linen;
+  font-weight: bold;
+}
+
+
+```
+
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(class.output="watch-out1")
+```
+
+# **1.SORU**
+
+**Çok değişkenli analizlere uygun bir veri seti bulunuz.Veri setinizi tanıtınız.Tanımlayıcı istatistiklerini özetleyiniz.Çok boyutlu değişkenler için kullanılan grafik yöntemleri kullanarak veri setinizi görsel olarak yorumlayınız.**
+
+## Veri setinin tanıtılması:
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(patchwork)  #birden fazla grafiği yanyana çizdirmek için
+library(tidyverse)
+library(summarytools) #tanımlayıcı istatistiklerin özetlenmesi için
+library(scatterplot3d)  #Küp grafik
+library(DataExplorer) #Birden fazla grafiği çizdirmek.
+```
+
+
+```{r echo=FALSE}
+patient<-read.csv(file='C:/Users/yasem/OneDrive/Masaüstü/patient.csv',
+header=TRUE,sep=",")
+knitr::kable(head(patient), caption = "Karaciğer Hastalığı")
+```
+
+**Bu veri seti, Hindistan'da Andhra Pradesh'in Kuzey Doğusundan toplanan 416 karaciğer hasta kaydı ve 167 karaciğer dışı hasta kaydı içermektedir**
+
+**Değişkenler;**
+
+**Age:** *Hastaların yaşı*
+
+**Gender:** *Hastaların cinsiyeti*
+
+**Bilirubin:** *Mg / dL cinsinden toplam Billirubin*
+
+**Direct_Bilirubin:** *Mg / dL cinsinden konjuge Billirubin*
+
+**Alkaline:** *IU / L cinsinden ALP*
+
+**Alamine:** *IU / L cinsinden ALT*
+
+**Aspartate:** *IU / L cinsinden AST*
+
+**Protiens:** *Toplam Proteinler g / dL*
+
+**Albumin:** *G / dL cinsinden albümin*
+
+**AlbuminGlobulin:** *A / G oranı*
+
+**Dataset:** *Hastanın karaciğer hastalığı var mı yok mu? > 1:Karaciğer Hastası,  2:Karaciğer Hastası Değil*
+
+
+```{r echo=FALSE}
+dim(patient)
+```
+
+**Veri setinde 583 gözlem ve 11 değişken bulunmaktadır.**
+
+
+```{r include=FALSE}
+patient=patient%>% mutate(Dataset= case_when(Dataset==1~"Hasta",
+Dataset==2~"Sağlıklı"))
+
+```
+
+
+```{r echo=FALSE}
+patient$Dataset=as.factor(patient$Dataset)
+patient$Gender=as.factor(patient$Gender)
+patient$Age=as.numeric(patient$Age)
+patient$Alkaline=as.numeric(patient$Alkaline)
+patient$Alamine=as.numeric(patient$Alamine)
+patient$Aspartate=as.numeric(patient$Aspartate)
+str(patient)
+```
+
+**11 değişkenin 2 tanesi factor değişkeni ve 9 tanesi sürekli değişkendir.**
+
+#
+#
+#
+
+.
+
+
+
+
+
+## Tanımlayıcı istatistiklerin özetlenmesi:
+
+#### **Sürekli değişkenlerin tanımlayıcı istatistikleri;**
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+descr(patient)
+```
+
+
+
+**Sürekli değişkenlerin ortalama,standart sapma,minimum ve maximum değerleri,1. ve 3. çeyreklikleri,median değerleri gibi birçok tanımlayıcı istatistikleri görüntülenmiştir.**
+
+
+**N.Valid gözlem sayısını göstermektedir.Diğer tüm değişkenlerde bu değer 583 iken AlbuminGlobulin için 579 dur.Bu da AlbuminGlobulin değişkeninde 4 gözlemin eksik olduğu anlamına gelir.**
+
+
+**AlbuminGlobulin değişkeni ortalaması en düşük olan değişkendir.**
+
+**Alkaline değişkeninde minimum değer 63, maximum değer ise 2110 iken median 208 dir.Bu durum Alkaline değişkeninin sağa çarpık dağılım gösterdiğinin belirtisidir.**
+
+**Değerler incelendiğinde bu şekilde başka değişkenlerin de olduğu görülmektedir.**
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+
+.
+
+
+
+####  **Factor değişkenleri hakkında bilgi edinelim**
+
+
+```{r echo=FALSE}
+Numeric=select(patient,where(is.numeric))
+Factor=select(patient,where(is.factor))
+dfSummary(Factor,style="grid")
+
+```
+
+**Kategorik değişkenlerin kategorilerindeki gözlem sayıları ve bu gözlemlerin yüzdeleri belirtilmiştir.**
+
+**"Cinsiyet" değişkenine bakıldığında erkeklerin daha fazla olduğu görülüyor.**
+
+**"Dataset" değişkeni bize verisetinde sağlıklı kişiden daha çok hasta kişi olduğunu göstermektedir**
+
+
+
+## veri setinin görselleştirilmesi:
+
+
+### Grafik 1:
+
+**İlk olarak verideki 2 kategorik değişkeni görselleştirerek inceleyelim.**
+
+
+```{r echo=FALSE}
+cinsiyet<-ggplot(patient) +
+ aes(x = Gender, fill = Gender) +
+ geom_bar(colour="black") +
+ scale_fill_brewer(palette = "Accent") +
+ labs(title = "Cinsiyet") +
+ ggthemes::theme_base()
+
+hastalıkdurumu<-ggplot(patient) +
+ aes(x = Dataset, fill = Dataset) +
+ geom_bar(colour="black") +
+ scale_fill_brewer(palette = "Accent") +
+ labs(title = "Hastalık Durumu") +
+ ggthemes::theme_base()
+cinsiyet+hastalıkdurumu
+
+
+
+```
+
+
+
+**Bu grafikler Cinsiyet ve Hastalık durumunu ifade eden değişkenlerin grafikleridir.**
+
+**Cinsiyet değişkeni grafiğine bakıldığında veri setindeki erkek sayısının kadınların iki katından fazla olduğu görülüyor.**
+
+**Hastalık durumu grafiğinden ise veri setindeki hastaların sayısının sağlıklı kişilerin iki katından fazla olduğu görülmektedir.**
+
+
+
+
+```{r echo=FALSE}
+plot=patient%>%ggplot(aes_string(x="Gender",fill="Dataset"))+
+  geom_bar(colour="black",position=position_dodge())+
+    scale_fill_manual(values=c("#999999", "#E69F00"))+ggthemes::theme_base()+
+ labs(title = "Cinsiyet ve Hastalık Durumu")
+plot
+```
+
+**Cinsiyet ve Hastalık Durumu değişkenlerinin birlikte grafiği çizdirilmiştir ve kadınlarda hasta olanların sağlıklı olanların yaklaşık olarak iki katı olduğu görülmektedir.Erkeklerde ise hasta olan erkeklerin sağlıklı olan erkeklere oranının kadınlara göre daha büyük olduğu görülüyor.**
+
+### Grafik 2:
+
+```{r echo=FALSE}
+scatterplot3d(patient[,5:7], pch = 16, color="steelblue")
+```
+
+**Bu grafik Aspartate,Alkaline ve Alamine değişkenlerine ait dağılım grafiğidir.Aspartate ve Alkaline değişkenlerinin 0-1000 arasında yoğunluk gösterdiği görülmektedir.Alamine değişkeni ise 0-500 arasında yoğunlaşmaktadır.**
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+
+### GRAFİK 3:
+
+```{r echo=FALSE}
+ggplot(patient) +
+ aes(x = Dataset, y = Age, fill = Dataset) +
+ geom_boxplot() +
+ scale_fill_brewer(palette = "PuRd") +
+ theme_light() +
+ facet_wrap(vars(Gender))
+```
+
+**Cinsiyet,yaş ve hastalık durumu ile ilgili bilgi veren bir boxplot grafiğidir.Grafikten kadınlarda ve erkeklerde hasta olanların yaş ortalamasının sağlıklı olanlara göre daha fazla olduğu görülmektedir.**
+
+
+
+### Grafik 4
+
+```{r echo=FALSE}
+b <- ggplot(patient, aes(x = Protiens, y =Albumin ))+ 
+  geom_point(aes(color = Dataset, size = Age), alpha = 0.5) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +theme_set(theme_minimal() + theme(legend.position = "top"))+
+  scale_size(range = c(0.5, 12))  # Adjust the range of points size
+b
+```
+
+**Mavi renkler hastaları,sarı renkler sağlıklı olan kişileri belirtmektedir.Grafikten hastaların sayısının daha fazla olduğu görülüyor.**
+
+**Daire büyüklüğü yaş ile doğru orantılıdır.**
+
+**Albumin ve Total protein arasında pozitif doğrusal ilişki olduğu görülmektedir.Genel olarak albumin seviyesi arttıkça Total protein de artış göstermiştir.**
+
+.
+
+.
+
+### Grafik 5: 
+
+### Sürekli değişkenler için QQ plot grafiği;
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_qq(patient)
+```
+
+**Age,Albumin ve Protiens değişkenlerinin normal dağılıma yakın olduğu görülmektedir.Diğer değişkenlerde ise gözlemlerin doğru çizgisinden sapması fazladır ve bu değişkenler normal dağılıma uygun görünmemektedirler.**
+
+
+#### Şimdi de tüm sayısal değişkenlerin QQ plot grafiğini Hastalık Durumuna göre inceleyelim
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_qq(patient, by = "Dataset")
+```
+
+**Grafiklerde mavi renk sağlıklı olan kişileri,kırmızı renk ise hasta olan kişileri göstermektedir.Age,albumin ve Protiens değişkenlerinde hasta ve sağlıklı kişilerin dağılımı benzerdir ve normal dağılıma yakındır.**
+
+
+**Alamine,AlbuminGlobulin,Aspartate,Bilirubin gibi birçok değişkende ise sağlıklı olan kişilerin dağılımı hasta olanlara göre normal dağılıma daha yakındır.**
+
+.
+
+.
+
+
+## Grafik 6:
+
+**ALT TESTİ NEDİR?**
+
+*ALT (Alanin Aminotransferaz),karaciğer tarafından üretilen bir enzimdir. Aynı zamanda serum glutamik piruvik transaminaz (SGPT) olarak da adlandırılır. ALT esas olarak karaciğerde bulunur. Çeşitli nedenlerle hasar gören karaciğer, kana daha fazla ALT katarak seviyenin yükselmesine neden olmaktadır. ALT yüksekliği; karaciğerde  hastalık anlamına gelebilir.*
+
+Veride "Alamine" değişkeni ALT değerini ifade etmektedir.Bu değişkenin diğer sürekli değişkenler ile dağılım grafiğini inceleyelim.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_scatterplot(split_columns(patient)$continuous, by = "Alamine", sampled_rows = 1000L )
+```
+
+Bu grafiklerde y ekseni ALT değerini ifade etmektedir.X ekseni ise mevcut sürekli değişkenin değerleridir.
+
+**"Aspartate" değişkeni ve ALT değeri arasında pozitif doğrusal ilişki olduğu söylenebilir.Diğer değişkenler ve ALT arasında anlamlı bir ilişki yoktur.**
+
+**Grafiklerden ALT değerinin 0-500 arasında yoğunluk gösterdiği görülüyor.**
+
+# **2.SORU**
+
+**Eğer veri setinizde eksik veriler varsa rastgele dağılıp dağılmadıklarını inceleyiniz(Eksik veriniz yoksa elinizdeki veriden eksik verili yeni bir versiyon oluşturarak aynı incelemeyi yapınız).Eksik verilerle ilgili ne tür bir düzeltme öneriniz olur?**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,out.width='60%'}
+plot_missing (patient) #patient verisi için eksik değer dağılımını görüntüleyin
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,out.width='70%'}
+library(naniar) #eksik gözlem grafiği için
+gg_miss_var(patient)
+```
+ 
+ 
+**Grafiklerden "AlbuminGlobulin" değişkeninde 4 tane eksik gözlem olduğu diğer değişkenlerde ise eksik gözlem olmadığı görülmektedir.**
+
+**Veride toplam 583 gözlem vardır.Eksik gözlemin olduğu satır sayısı ise 4 tür.Toplam gözlem sayısına göre eksik gözlemin olduğu satırların oldukça az olmasından dolayı bu gözlemlerin veriden çıkarılması önemli bir değişiklik oluşturmayacaktır.Bu gözlemler veriden çıkarılabilir ya da ortalama ile  doldurulup analizlere o şekilde devam edilebilir.**
+
+# **3.SORU**
+
+**Veri setinizde aşırı değer bulunup bulunmadığını kontrol ediniz(Eğer veri setinizde hiç aşırı değer yok ise,elinizdeki veriye bir iki tane aşırı değer ekleyerek oluşturduğunuz yeni versiyonda kontrollerinizi yapabilirsiniz.Aykırı değerle ilgili çözüm önerinizi özetleyerek belirtiniz.)**
+
+
+## Sürekli değişkenlerin boxplot grafiklerini inceleyerek aykırı değerleri kontrol edelim.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_boxplot(patient, by = "Dataset",ncol=3, theme_config = list(
+  "plot.background" = element_rect(fill = "lightpink"),
+  "aspect.ratio" = 0.3
+  ))
+```
+
+
+.
+
+.
+
+**Sürekli değişkenlerin Hastalık durumununa göre boxplot grafikleri çizdirilmiştir.**
+
+**Age değişkeninde aykırı değer görülmemektedir.Albumin değişkeninde 1 aykırı değer gözlenmektedir(Bu değer hasta olan bir kişiye aiittir),Diğer tüm değişkenlerde de aykırı değerler vardır.**
+
+**Alkaline ve Direct_Biluribin değişkenlerinde özellikle hasta kişiler için aykırı değerlerin fazla olduğu görülüyor.**
+
+
+
+#### **Total protein için aykırı olabilecek değerleri görüntüleyelim;**
+
+```{r echo=FALSE}
+boxplot.stats(patient$Protiens)$out
+
+
+```
+
+
+**Grubbs Testi, bir veri kümesindeki aykırı değerlerin varlığını belirlemek için kullanılabilen istatistiksel bir testtir.**
+
+
+H0(boş hipotez):  Verilerde aykırı değer yoktur.
+
+HA(alternatif hipotez):  Veride aykırı değer vardır.
+
+p value 0.05 ten küçük ise H0 red edilir ve aykırı değer olduğu anlamına gelir.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(outliers)
+tests = lapply(Numeric,grubbs.test,type=10)
+tests
+
+```
+
+Test tüm sürekli değişkenlere uygulanmıştır.
+
+Age ve Albumin değişkenleri için en büyük değerin outlier olup olmadığı test edilmiş ve p value 0.05 ten büyük çıkmıştır.Bu durumda bu değişkenler için Ho kabul edilir ve en büyük değişkenin aykırı olmadığı sonucuna ulaşılır.
+
+
+  **Bilirubin**
+  
+  **Direct_Bilirubin**
+  
+  **Alkaline**
+  
+  **Alamine**
+  
+  **Aspartate**
+  
+  **AlbuminGlobulin**
+  
+Bu değişkenlerde ise en büyük değerin aykırı olup olmadığına dair test sonucunda p value değeri  0.05 ten küçük çıkmıştır.Bu durumda bu değerlerin aykırı olmadığı red edilir ve bu değişkenlerin en büyük değerlerinin aykırı olduğu sonucuna varılır.
+
+
+**ÇÖZÜM ÖNERİSİ;**
+
+*Veride çoğu değişken için birçok aykırı gözlem vardır.Bu gözlemlerin fazla olmasından dolayı mevcut satırların veriden çıkarılması doğru değildir.Bu aykırı gözlemler mevcut değişkenin ortalaması ile değiştirilebilirler.*
+
+
+# **4.SORU**
+
+**Değişkenlerinizin dağılımını inceleyiniz.Normallik varsayımını sağlayıp sağlamadıklarını inceleyiniz.İstediğiniz bir değişken için değişken dönüşümünün normallik varsayımının sağlanmasına katkısını irdeleyiniz.**
+
+
+### Sürekli değişkenlerin histogramlarını inceleyelim
+
+```{r echo=FALSE,out.width='80%'}
+library(DataExplorer)
+plot_histogram(data = Numeric,ncol=3,
+  theme_config = list(
+  "plot.background" = element_rect(fill = "lightblue"),
+  "aspect.ratio" = 0.5
+  ))
+
+```
+
+Alamine,AlbuminGlobulin,Alkaline,Aspartate,Direct_Bilirubin,Bilirubin değişkenlerinin dağılımının sağa çarpık olduğu görülüyor.
+
+Age ve Albumin değişkenlerinin histogramlarından normal dağılıma yakın oldukları sonucu çıkarılabilir.
+
+Protiens değişkeni ise sola çarpık dağılım göstermektedir.
+
+### Dağılımları bir de Shapiro-Wilk testi ile kontrol edelim
+
+Shapiro-Wilk testinde;
+
+Ho:Veri normal dağılmaktadır.
+
+H1:Veri normal dağılmamaktadır.
+
+anlamına gelmektedir.
+
+
+
+```{r echo=FALSE}
+do.call(rbind, lapply(Numeric, function(x) shapiro.test(x)[c("statistic", "p.value")]))
+```
+
+**Tüm değişkenler için p value 0.05 ten küçüktür ve Ho red edilir.Yani bu verideki değişkenler normal dağılmamaktadır.**
+
+
+```{r}
+shapiro.test(log(patient$Aspartate))
+```
+
+**"Aspartate" değişkenine logaritmik dönüşüm uygulanmış ama bu değişkenin normal dağılmadığı sonucu değişmemiştir.**
+
+.
+
+.
+
+.
+
+.
+
+# **5.SORU**
+
+**Değişkenleriniz arasındaki ilişkileri inceleyiniz,eğrisel ilişki,doğrusal ilişki,çoklu doğrusal bağlantı olup olmadığını araştırınız.**
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(GGally)
+ggpairs(Numeric)
+```
+
+Dağılım grafiklerinden ve korelasyon katsayılarından;
+
+**AlbuminGlobulin** ve **Albumin** arasında pozitif doğrusal ilişki vardır.
+
+**Albumin** ve **Proteins** değişkenleri arasında pozitif doğrusal ilişki vardır.
+
+**Bilirubin** ve **Direct_Bilirubin** arasında pozitif doğrusal ilişki vardır.
+
+**Aspartate** ve **Alamine** değişkenleri arasında pozitif doğrusal ilişki vardır.
+
+Sonuçlarına ulaşılıyor.
+
+
+```{r echo=FALSE}
+ggcorr(Numeric, nbreaks=8, palette='RdGy', label=TRUE, label_size=9, label_color='white')
+ 
+
+```
+
+Bu grafikle de yukarıdaki diğer grafikte de gösterilmiş olan korelasyon katsayılarını görebiliriz.
+
+**Direct_Bilirubin** Ve **Bilirubin**
+
+**Aspartate** ve **Alamine**
+
+**Albumin** ve **Protiens** değişkenleri arasındaki korelasyonun fazla olması çoklu doğrusal bağlantının göstergesidir.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(corrr)
+
+Numeric %>% correlate() %>% network_plot(min_cor=0.5)
+```
+
+Bu grafik, hangi değişkenlerin birbiriyle yakından ilişkili olduğunu görmeyi kolaylaştırmak için kümeleme kullanır. Her değişken birbirine ne kadar yakınsa, ilişki o kadar yüksek olurken, geniş aralıklı değişkenler için tersi doğrudur. Çizginin rengi korelasyonun yönünü temsil ederken, çizgi gölgesi ve kalınlığı ilişkinin gücünü temsil eder. 
+
+Burada da birbiriyle ilişkili olan değişkenler görülmektedir ve aralarındaki çizginin mavi olması ilişkinin pozitif olduğunu anlatmaktadır.
+
+.
+
+.
+
+.
+
+.
+
+
+
